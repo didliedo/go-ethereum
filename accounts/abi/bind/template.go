@@ -90,6 +90,10 @@ package {{.Package}}
 import (
 	"math/big"
 	"strings"
+<<<<<<< HEAD
+=======
+	"errors"
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
 
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -101,6 +105,10 @@ import (
 
 // Reference imports to suppress errors if they are not otherwise used.
 var (
+<<<<<<< HEAD
+=======
+	_ = errors.New
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
 	_ = big.NewInt
 	_ = strings.NewReader
 	_ = ethereum.NotFound
@@ -108,6 +116,10 @@ var (
 	_ = common.Big1
 	_ = types.BloomLookup
 	_ = event.NewSubscription
+<<<<<<< HEAD
+=======
+	_ = abi.ConvertType
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
 )
 
 {{$structs := .Structs}}
@@ -120,6 +132,7 @@ var (
 {{end}}
 
 {{range $contract := .Contracts}}
+<<<<<<< HEAD
 	// {{.Type}}ABI is the input ABI used to generate the binding from.
 	const {{.Type}}ABI = "{{.InputABI}}"
 
@@ -129,10 +142,34 @@ var (
 			{{range $strsig, $binsig := .FuncSigs}}"{{$binsig}}": "{{$strsig}}",
 			{{end}}
 		}
+=======
+	// {{.Type}}MetaData contains all meta data concerning the {{.Type}} contract.
+	var {{.Type}}MetaData = &bind.MetaData{
+		ABI: "{{.InputABI}}",
+		{{if $contract.FuncSigs -}}
+		Sigs: map[string]string{
+			{{range $strsig, $binsig := .FuncSigs}}"{{$binsig}}": "{{$strsig}}",
+			{{end}}
+		},
+		{{end -}}
+		{{if .InputBin -}}
+		Bin: "0x{{.InputBin}}",
+		{{end}}
+	}
+	// {{.Type}}ABI is the input ABI used to generate the binding from.
+	// Deprecated: Use {{.Type}}MetaData.ABI instead.
+	var {{.Type}}ABI = {{.Type}}MetaData.ABI
+
+	{{if $contract.FuncSigs}}
+		// Deprecated: Use {{.Type}}MetaData.Sigs instead.
+		// {{.Type}}FuncSigs maps the 4-byte function signature to its string representation.
+		var {{.Type}}FuncSigs = {{.Type}}MetaData.Sigs
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
 	{{end}}
 
 	{{if .InputBin}}
 		// {{.Type}}Bin is the compiled bytecode used for deploying new contracts.
+<<<<<<< HEAD
 		var {{.Type}}Bin = "0x{{.InputBin}}"
 
 		// Deploy{{.Type}} deploys a new Ethereum contract, binding an instance of {{.Type}} to it.
@@ -146,6 +183,25 @@ var (
 			{{$contract.Type}}Bin = strings.Replace({{$contract.Type}}Bin, "__${{$pattern}}$__", {{decapitalise $name}}Addr.String()[2:], -1)
 		  {{end}}
 		  address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex({{.Type}}Bin), backend {{range .Constructor.Inputs}}, {{.Name}}{{end}})
+=======
+		// Deprecated: Use {{.Type}}MetaData.Bin instead.
+		var {{.Type}}Bin = {{.Type}}MetaData.Bin
+
+		// Deploy{{.Type}} deploys a new Ethereum contract, binding an instance of {{.Type}} to it.
+		func Deploy{{.Type}}(auth *bind.TransactOpts, backend bind.ContractBackend {{range .Constructor.Inputs}}, {{.Name}} {{bindtype .Type $structs}}{{end}}) (common.Address, *types.Transaction, *{{.Type}}, error) {
+		  parsed, err := {{.Type}}MetaData.GetAbi()
+		  if err != nil {
+		    return common.Address{}, nil, nil, err
+		  }
+		  if parsed == nil {
+			return common.Address{}, nil, nil, errors.New("GetABI returned nil")
+		  }
+		  {{range $pattern, $name := .Libraries}}
+			{{decapitalise $name}}Addr, _, _, _ := Deploy{{capitalise $name}}(auth, backend)
+			{{$contract.Type}}Bin = strings.ReplaceAll({{$contract.Type}}Bin, "__${{$pattern}}$__", {{decapitalise $name}}Addr.String()[2:])
+		  {{end}}
+		  address, tx, contract, err := bind.DeployContract(auth, *parsed, common.FromHex({{.Type}}Bin), backend {{range .Constructor.Inputs}}, {{.Name}}{{end}})
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
 		  if err != nil {
 		    return common.Address{}, nil, nil, err
 		  }
@@ -250,11 +306,19 @@ var (
 
 	// bind{{.Type}} binds a generic wrapper to an already deployed contract.
 	func bind{{.Type}}(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
+<<<<<<< HEAD
 	  parsed, err := abi.JSON(strings.NewReader({{.Type}}ABI))
 	  if err != nil {
 	    return nil, err
 	  }
 	  return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
+=======
+	  parsed, err := {{.Type}}MetaData.GetAbi()
+	  if err != nil {
+	    return nil, err
+	  }
+	  return bind.NewBoundContract(address, *parsed, caller, transactor, filterer), nil
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
 	}
 
 	// Call invokes the (constant) contract method with params as input values and
@@ -304,8 +368,16 @@ var (
 			err := _{{$contract.Type}}.contract.Call(opts, &out, "{{.Original.Name}}" {{range .Normalized.Inputs}}, {{.Name}}{{end}})
 			{{if .Structured}}
 			outstruct := new(struct{ {{range .Normalized.Outputs}} {{.Name}} {{bindtype .Type $structs}}; {{end}} })
+<<<<<<< HEAD
 			{{range $i, $t := .Normalized.Outputs}} 
 			outstruct.{{.Name}} = out[{{$i}}].({{bindtype .Type $structs}}){{end}}
+=======
+			if err != nil {
+				return *outstruct, err
+			}
+			{{range $i, $t := .Normalized.Outputs}}
+			outstruct.{{.Name}} = *abi.ConvertType(out[{{$i}}], new({{bindtype .Type $structs}})).(*{{bindtype .Type $structs}}){{end}}
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
 
 			return *outstruct, err
 			{{else}}
@@ -314,7 +386,11 @@ var (
 			}
 			{{range $i, $t := .Normalized.Outputs}}
 			out{{$i}} := *abi.ConvertType(out[{{$i}}], new({{bindtype .Type $structs}})).(*{{bindtype .Type $structs}}){{end}}
+<<<<<<< HEAD
 			
+=======
+
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
 			return {{range $i, $t := .Normalized.Outputs}}out{{$i}}, {{end}} err
 			{{end}}
 		}
@@ -357,7 +433,11 @@ var (
 		}
 	{{end}}
 
+<<<<<<< HEAD
 	{{if .Fallback}} 
+=======
+	{{if .Fallback}}
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
 		// Fallback is a paid mutator transaction binding the contract fallback function.
 		//
 		// Solidity: {{.Fallback.Original.String}}
@@ -371,16 +451,26 @@ var (
 		func (_{{$contract.Type}} *{{$contract.Type}}Session) Fallback(calldata []byte) (*types.Transaction, error) {
 		  return _{{$contract.Type}}.Contract.Fallback(&_{{$contract.Type}}.TransactOpts, calldata)
 		}
+<<<<<<< HEAD
 	
 		// Fallback is a paid mutator transaction binding the contract fallback function.
 		// 
+=======
+
+		// Fallback is a paid mutator transaction binding the contract fallback function.
+		//
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
 		// Solidity: {{.Fallback.Original.String}}
 		func (_{{$contract.Type}} *{{$contract.Type}}TransactorSession) Fallback(calldata []byte) (*types.Transaction, error) {
 		  return _{{$contract.Type}}.Contract.Fallback(&_{{$contract.Type}}.TransactOpts, calldata)
 		}
 	{{end}}
 
+<<<<<<< HEAD
 	{{if .Receive}} 
+=======
+	{{if .Receive}}
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
 		// Receive is a paid mutator transaction binding the contract receive function.
 		//
 		// Solidity: {{.Receive.Original.String}}
@@ -394,9 +484,15 @@ var (
 		func (_{{$contract.Type}} *{{$contract.Type}}Session) Receive() (*types.Transaction, error) {
 		  return _{{$contract.Type}}.Contract.Receive(&_{{$contract.Type}}.TransactOpts)
 		}
+<<<<<<< HEAD
 	
 		// Receive is a paid mutator transaction binding the contract receive function.
 		// 
+=======
+
+		// Receive is a paid mutator transaction binding the contract receive function.
+		//
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
 		// Solidity: {{.Receive.Original.String}}
 		func (_{{$contract.Type}} *{{$contract.Type}}TransactorSession) Receive() (*types.Transaction, error) {
 		  return _{{$contract.Type}}.Contract.Receive(&_{{$contract.Type}}.TransactOpts)
@@ -541,12 +637,17 @@ var (
 			if err := _{{$contract.Type}}.contract.UnpackLog(event, "{{.Original.Name}}", log); err != nil {
 				return nil, err
 			}
+<<<<<<< HEAD
+=======
+			event.Raw = log
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
 			return event, nil
 		}
 
  	{{end}}
 {{end}}
 `
+<<<<<<< HEAD
 
 // tmplSourceJava is the Java source template that the generated Java contract binding
 // is based on.
@@ -684,3 +785,5 @@ import java.util.*;
 }
 {{end}}
 `
+=======
+>>>>>>> parent of de366fd2e (accounts/abi: embed Go template instead of string literal (#30098))
