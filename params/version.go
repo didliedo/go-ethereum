@@ -22,8 +22,13 @@ import (
 
 const (
 	VersionMajor = 1        // Major version component of the current release
+<<<<<<< HEAD
 	VersionMinor = 9        // Minor version component of the current release
 	VersionPatch = 24       // Patch version component of the current release
+=======
+	VersionMinor = 14       // Minor version component of the current release
+	VersionPatch = 6        // Patch version component of the current release
+>>>>>>> parent of 640e0f15f (params: begin v1.14.7 release cycle)
 	VersionMeta  = "stable" // Version metadata to append to the version string
 )
 
